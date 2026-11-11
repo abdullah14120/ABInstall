@@ -8,7 +8,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.xiaomi.mipicks"
+        applicationId = "com.amazon.venezia"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
