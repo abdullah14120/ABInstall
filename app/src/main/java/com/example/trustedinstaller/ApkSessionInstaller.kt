@@ -12,10 +12,6 @@ import kotlinx.coroutines.withContext
 
 class ApkSessionInstaller(private val context: Context) {
 
-    /**
-     * تثبيت ملف APK واحد أو مجموعة ملفات (Split APKs) داخل جلسة رسمية واحدة
-     * مع تسجيل اسم حزمة هذا التطبيق كمصدر التثبيت الموثوق.
-     */
     suspend fun installApks(
         apkUris: List<Uri>,
         onProgress: (String) -> Unit
@@ -23,16 +19,21 @@ class ApkSessionInstaller(private val context: Context) {
         runCatching {
             require(apkUris.isNotEmpty()) { "يرجى اختيار ملف APK واحد على الأقل" }
 
+            // يقوم النظام تلقائياً بربط context.packageName كمعرف الحزمة المثبِّتة (mInstallerPackageName)
             val packageInstaller = context.packageManager.packageInstaller
 
             val params = PackageInstaller.SessionParams(
                 PackageInstaller.SessionParams.MODE_FULL_INSTALL
             ).apply {
-                // تسجيل اسم حزمة التطبيق الحالي كمصدر التثبيت الرسمي
-                setInstallerPackageName(context.packageName)
+                // الدالة متاحة للعامة بدءاً من Android 14 (API 34) فقط، وفي الإصدارات الأقدم يضبطها النظام تلقائياً
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    setInstallerPackageName(context.packageName)
+                }
 
-                // تحديد سبب التثبيت كإجراء مباشر ومعتمد من المستخدم
-                setInstallReason(PackageManager.INSTALL_REASON_USER)
+                // تحديد سبب التثبيت كإجراء مباشر ومعتمد من المستخدم (Android 8.0+)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    setInstallReason(PackageManager.INSTALL_REASON_USER)
+                }
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_REQUIRED)
