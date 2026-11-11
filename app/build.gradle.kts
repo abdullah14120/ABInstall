@@ -8,7 +8,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.trustedinstaller"
+        applicationId = "com.xiaomi.mipicks"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
