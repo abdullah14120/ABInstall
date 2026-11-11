@@ -19,34 +19,45 @@ class ApkSessionInstaller(private val context: Context) {
         runCatching {
             require(apkUris.isNotEmpty()) { "يرجى اختيار ملف APK واحد على الأقل" }
 
-            // يقوم النظام تلقائياً بربط context.packageName كمعرف الحزمة المثبِّتة (mInstallerPackageName)
             val packageInstaller = context.packageManager.packageInstaller
 
             val params = PackageInstaller.SessionParams(
                 PackageInstaller.SessionParams.MODE_FULL_INSTALL
             ).apply {
-                // الدالة متاحة للعامة بدءاً من Android 14 (API 34) فقط، وفي الإصدارات الأقدم يضبطها النظام تلقائياً
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                    setInstallerPackageName(context.packageName)
-                }
-
-                // تحديد سبب التثبيت كإجراء مباشر ومعتمد من المستخدم (Android 8.0+)
+                // 1. تحديد سبب التثبيت كإجراء مباشر ومعتمد من المستخدم (Android 8.0+)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     setInstallReason(PackageManager.INSTALL_REASON_USER)
                 }
 
+                // 2. تسجيل نوع المصدر كـ "متجر تطبيقات رسمي" (PACKAGE_SOURCE_STORE) في Android 13+
+                // هذا يمنع ظهور التطبيق كملف محلي (LOCAL_FILE) أو مصدر مجهول (UNSPECIFIED) لدى السيرفر
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    setPackageSource(PackageInstaller.PACKAGE_SOURCE_STORE)
+                }
+
+                // 3. ضبط اسم الحزمة المثبِّتة وتفعيل ملكية التحديثات الرسمية في Android 14+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    setInstallerPackageName(context.packageName)
+                    setRequestUpdateOwnership(true)
+                }
+
+                // 4. تعيين معيار تفاعل المستخدم المباشر (Android 12+)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_REQUIRED)
                 }
+
+                // 5. ضبط بيانات الإحالة (Referrer & Originating URI) لتغذية فحوصات السيرفر
+                setOriginatingUri(Uri.parse("https://store.trustedinstaller.local/download"))
+                setReferrerUri(Uri.parse("android-app://${context.packageName}"))
             }
 
             val sessionId = packageInstaller.createSession(params)
 
             packageInstaller.openSession(sessionId).use { session ->
                 apkUris.forEachIndexed { index, uri ->
-                    val entryName = "split_pkg_$index.apk"
+                    val entryName = "base_or_split_$index.apk"
                     withContext(Dispatchers.Main) {
-                        onProgress("جاري كتابة الملف (${index + 1}/${apkUris.size}) داخل جلسة النظام...")
+                        onProgress("جاري كتابة الملف (${index + 1}/${apkUris.size}) ببيانات متجر معتمد...")
                     }
 
                     context.contentResolver.openInputStream(uri)?.use { inputStream ->
