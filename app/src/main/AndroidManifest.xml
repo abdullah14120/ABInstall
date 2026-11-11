@@ -1,0 +1,30 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.android.trustedinstaller">
+
+    <!-- صلاحية تثبيت الحزم للمصادر الموثوقة من المستخدم -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- صلاحية الاستعلام عن الحزم للتحقق من مصدر التثبيت بعد انتهاء العملية -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+
+    <application
+        android:allowBackup="true"
+        android:label="Trusted APK Installer"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Material3.DayNight.NoActionBar">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- مستقبل نتائج جلسة التثبيت -->
+        <receiver
+            android:name=".InstallStatusReceiver"
+            android:exported="false" />
+
+    </application>
+</manifest>
