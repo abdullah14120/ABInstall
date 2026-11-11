@@ -24,13 +24,15 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
 
       - name: Setup Gradle 8.6
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.6'
 
-      - name: Prepare Project & Build Debug APK
+      - name: Prepare Project & Build APK
         run: |
           if [ -f "app/build.gradle.kts" ]; then
             PROJECT_DIR="."
