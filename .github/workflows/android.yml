@@ -1,0 +1,68 @@
+name: Android CI (Build APK)
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Trusted APK Installer
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle 8.6
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.6'
+
+      - name: Prepare Project & Build Debug APK
+        run: |
+          if [ -f "app/build.gradle.kts" ]; then
+            PROJECT_DIR="."
+          elif [ -f "TrustedApkInstaller/app/build.gradle.kts" ]; then
+            PROJECT_DIR="TrustedApkInstaller"
+          else
+            echo "Error: Could not find app/build.gradle.kts"
+            exit 1
+          fi
+
+          cd "$PROJECT_DIR"
+
+          # تصحيح حساسية الأحرف في ملف الواجهة إن وجدت
+          if [ -f "app/src/main/res/layout/activity_main.xml" ]; then
+            sed -i 's/android:SingleLine/android:singleLine/g' app/src/main/res/layout/activity_main.xml
+          fi
+
+          # بناء نسخة Debug ونسخة Release
+          gradle assembleDebug assembleRelease --stacktrace
+
+      - name: Upload Debug APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TrustedApkInstaller-debug
+          path: |
+            **/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+      - name: Upload Release APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TrustedApkInstaller-release-unsigned
+          path: |
+            **/app/build/outputs/apk/release/*.apk
+          if-no-files-found: warn
